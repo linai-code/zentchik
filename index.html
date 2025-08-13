@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Записи + Рассылка (GitHub API)</title>
+<style>
+  :root{
+    --bg:#f6f8ff;
+    --text:#00003c;
+    --muted:#99a1c2;
+    --brand:#0061ff;
+    --brand-2:#00e4ca;
+    --card:#ffffff;
+    --bd:#ccdfff;
+    --shadow:0 4px 12px rgba(0,97,255,.1);
+    --radius:12px;
+  }
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"IBM Plex Sans",system-ui,sans-serif;padding:1rem;display:flex;justify-content:center;}
+  .container{max-width:900px;width:100%;display:flex;flex-direction:column;gap:1rem;}
+  h2{margin:0 0 0.5rem;font-weight:600;font-size:1.1rem;}
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:var(--radius);box-shadow:var(--shadow);padding:1rem;}
+  input, select{width:100%;padding:0.4rem 0.5rem;border:1px solid var(--bd);border-radius:10px;margin-bottom:0.5rem;font-size:0.9rem;outline:none;}
+  input:focus, select:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-2);}
+  button{display:inline-block;padding:0.4rem 0.75rem;border-radius:10px;border:1px solid var(--bd);background:var(--brand);color:#fff;font-weight:500;cursor:pointer;transition:all 0.15s;}
+  button:hover{background:#004bd1;}
+  .post{border:1px solid var(--bd);border-radius:var(--radius);padding:0.5rem;margin-top:0.5rem;background:#fafcff;display:flex;justify-content:space-between;align-items:center;gap:0.5rem;}
+  .post strong{display:block;margin-bottom:0.25rem;}
+</style>
+<script>
+const GITHUB_TOKEN = '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';
+const OWNER = 'linai-code';
+const REPO = 'zentchik';
+
+async function saveToGitHub(filePath, content, message) {
+  const getRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, {
+    headers: { Authorization: `token ${GITHUB_TOKEN}` }
+  });
+  const fileData = await getRes.json();
+  const sha = fileData.sha;
+
+  const putRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, {
+    method: 'PUT',
+    headers: {
+      Authorization: `token ${GITHUB_TOKEN}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      message,
+      content: btoa(unescape(encodeURIComponent(content))),
+      sha
+    })
+  });
+
+  if (!putRes.ok) {
+    const err = await putRes.json();
+    alert('Ошибка при сохранении: ' + err.message);
+  }
+}
+
+let posts = [];
+let channels = [];
+
+async function loadPosts() {
+  try {
+    const res = await fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/main/posts.json`);
+    posts = res.ok ? await res.json() : [];
+  } catch { posts = []; }
+  renderPosts();
+}
+
+async function loadChannels() {
+  try {
+    const res = await fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/main/channels.json`);
+    channels = res.ok ? await res.json() : [];
+  } catch { channels = []; }
+  renderChannels();
+}
+
+async function savePosts() {
+  await saveToGitHub('posts.json', JSON.stringify(posts, null, 2), 'update posts');
+}
+
+async function saveChannels() {
+  await saveToGitHub('channels.json', JSON.stringify(channels, null, 2), 'update channels');
+}
+
+function renderPosts() {
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  posts.forEach(p => {
+    const div = document.createElement('div');
+    div.className = 'post';
+    div.innerHTML = `<strong>${p.title}</strong><div>${p.content}</div>`;
+    list.appendChild(div);
+  });
+}
+
+function renderChannels() {
+  const list = document.getElementById('channels');
+  list.innerHTML = '';
+  channels.forEach(c => {
+    const div = document.createElement('div');
+    div.className = 'post';
+    div.innerHTML = `<strong>${c.id}</strong>`;
+    list.appendChild(div);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadPosts();
+  loadChannels();
+  document.getElementById('createPost').onclick = async () => {
+    const title = prompt('Заголовок:');
+    const content = prompt('Текст:');
+    if (!title || !content) return;
+    posts.unshift({ id: crypto.randomUUID(), title, content, createdAt: Date.now() });
+    await savePosts();
+    renderPosts();
+  };
+});
+</script>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <h2>Записи</h2>
+    <div id="list"></div>
+    <button id="createPost">Создать пост</button>
+  </div>
+  <div class="card">
+    <h2>Каналы</h2>
+    <div id="channels"></div>
+  </div>
+</div>
+</body>
+</html>
