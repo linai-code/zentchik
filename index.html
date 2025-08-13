@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Записи + Рассылка</title>
 <style>
   :root{
@@ -38,11 +38,11 @@
 <script>
 const OWNER = 'linai-code';
 const REPO = 'zentchik';
-const TOKEN = atob('Z2hwX0ZlT3lwU3BwVUt3TmlORlNzcHdodmdNcmhubEc4RTNhaE10dg=='); // безопаснее хранить зашифрованно
+const TOKEN = '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';
 
 async function saveToGitHub(filePath, content, message) {
   const getRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, {
-    headers: { Authorization: `Bearer ${TOKEN}` }
+    headers: { Authorization: `token ${TOKEN}` }
   });
   const fileData = await getRes.json();
   const sha = fileData.sha;
@@ -50,7 +50,7 @@ async function saveToGitHub(filePath, content, message) {
   const putRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, {
     method: 'PUT',
     headers: {
-      Authorization: `Bearer ${TOKEN}`,
+      Authorization: `token ${TOKEN}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
