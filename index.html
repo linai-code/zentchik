@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Записи + Рассылка (GitHub API)</title>
+<title>Записи + Рассылка</title>
 <style>
   :root{
     --bg:#f6f8ff;
@@ -24,8 +24,16 @@
   input:focus, select:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-2);}
   button{display:inline-block;padding:0.4rem 0.75rem;border-radius:10px;border:1px solid var(--bd);background:var(--brand);color:#fff;font-weight:500;cursor:pointer;transition:all 0.15s;}
   button:hover{background:#004bd1;}
+  button:disabled{opacity:.6;cursor:not-allowed;}
   .post{border:1px solid var(--bd);border-radius:var(--radius);padding:0.5rem;margin-top:0.5rem;background:#fafcff;display:flex;justify-content:space-between;align-items:center;gap:0.5rem;}
   .post strong{display:block;margin-bottom:0.25rem;}
+  .editor-toolbar{display:flex;gap:0.5rem;margin-bottom:0.5rem;}
+  .editor-toolbar button{background:#fff;color:var(--text);border:1px solid var(--bd);}
+  .editor{min-height:120px;padding:0.6rem 0.75rem;border:1px solid var(--bd);border-radius:10px;background:#fff;outline:none;}
+  @media (max-width:600px){
+    body{padding:0.5rem;}
+    .editor{min-height:100px;}
+  }
 </style>
 <script>
 const GITHUB_TOKEN = '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';
@@ -58,13 +66,19 @@ async function saveToGitHub(filePath, content, message) {
   }
 }
 
+function ensureArray(data){
+  if(Array.isArray(data)) return data;
+  if(!data) return [];
+  return Object.values(data);
+}
+
 let posts = [];
 let channels = [];
 
 async function loadPosts() {
   try {
     const res = await fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/main/posts.json`);
-    posts = res.ok ? await res.json() : [];
+    posts = res.ok ? ensureArray(await res.json()) : [];
   } catch { posts = []; }
   renderPosts();
 }
@@ -72,7 +86,7 @@ async function loadPosts() {
 async function loadChannels() {
   try {
     const res = await fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/main/channels.json`);
-    channels = res.ok ? await res.json() : [];
+    channels = res.ok ? ensureArray(await res.json()) : [];
   } catch { channels = []; }
   renderChannels();
 }
@@ -91,32 +105,104 @@ function renderPosts() {
   posts.forEach(p => {
     const div = document.createElement('div');
     div.className = 'post';
-    div.innerHTML = `<strong>${p.title}</strong><div>${p.content}</div>`;
+    div.innerHTML = `<div><strong>${p.title}</strong><div>${p.content}</div></div>`;
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '🗑';
+    delBtn.onclick = () => deletePost(p.id);
+    div.appendChild(delBtn);
     list.appendChild(div);
   });
 }
 
 function renderChannels() {
-  const list = document.getElementById('channels');
-  list.innerHTML = '';
+  const channelsList = document.getElementById('channels');
+  channelsList.innerHTML = '';
   channels.forEach(c => {
     const div = document.createElement('div');
     div.className = 'post';
-    div.innerHTML = `<strong>${c.id}</strong>`;
-    list.appendChild(div);
+    div.innerHTML = `<div><strong>${c.id}</strong></div>`;
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '🗑';
+    delBtn.onclick = () => deleteChannel(c.id);
+    div.appendChild(delBtn);
+    channelsList.appendChild(div);
   });
+}
+
+async function deletePost(id) {
+  posts = posts.filter(p => p.id !== id);
+  await savePosts();
+  renderPosts();
+}
+
+async function deleteChannel(id) {
+  channels = channels.filter(c => c.id !== id);
+  await saveChannels();
+  renderChannels();
+}
+
+function formatText(command) {
+  document.execCommand(command, false, null);
+}
+
+function insertLink() {
+  const url = prompt('Введите URL');
+  if (url) {
+    let selection = window.getSelection();
+    if (!selection.rangeCount) return;
+    let range = selection.getRangeAt(0);
+    if (selection.toString().length === 0) {
+      const linkText = prompt('Введите текст ссылки') || url;
+      const a = document.createElement('a');
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = linkText;
+      range.insertNode(a);
+    } else {
+      document.execCommand('createLink', false, url);
+      document.querySelectorAll('a').forEach(a => {
+        if (a.href === url || a.href === url + '/') {
+          a.target = '_blank';
+          a.rel = 'noopener noreferrer';
+        }
+      });
+    }
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   loadPosts();
   loadChannels();
-  document.getElementById('createPost').onclick = async () => {
-    const title = prompt('Заголовок:');
-    const content = prompt('Текст:');
-    if (!title || !content) return;
-    posts.unshift({ id: crypto.randomUUID(), title, content, createdAt: Date.now() });
+
+  document.getElementById('createBtn').onclick = async () => {
+    const title = document.getElementById('title').value.trim();
+    const content = document.getElementById('content').innerHTML.trim();
+    if (!title || !content) return alert('Введите заголовок и текст');
+    const id = crypto.randomUUID();
+    posts.unshift({ id, title, content, createdAt: Date.now() });
     await savePosts();
     renderPosts();
+    document.getElementById('title').value = '';
+    document.getElementById('content').innerHTML = '';
+  };
+
+  document.getElementById('addChannelBtn').onclick = async () => {
+    const id = document.getElementById('channelId').value.trim();
+    if (!id) return alert('Введите ID канала');
+    channels.push({ id });
+    await saveChannels();
+    renderChannels();
+    document.getElementById('channelId').value = '';
+  };
+
+  document.getElementById('sendBtn').onclick = async () => {
+    const postId = document.getElementById('selectPost').value;
+    const channelId = document.getElementById('selectChannel').value;
+    if (!postId || !channelId) return alert('Выберите запись и канал');
+    const payload = { status: true, postId, channelId, timestamp: new Date().toISOString() };
+    await saveToGitHub('send.json', JSON.stringify(payload, null, 2), 'send post');
+    alert('Рассылка отправлена');
   };
 });
 </script>
@@ -124,13 +210,30 @@ document.addEventListener('DOMContentLoaded', () => {
 <body>
 <div class="container">
   <div class="card">
-    <h2>Записи</h2>
+    <h2>Создать запись</h2>
+    <input id="title" placeholder="Заголовок" />
+    <div class="editor-toolbar">
+      <button type="button" onclick="formatText('bold')"><b>B</b></button>
+      <button type="button" onclick="insertLink()">🔗</button>
+    </div>
+    <div id="content" class="editor" contenteditable="true"></div>
+    <button id="createBtn">Создать</button>
+  </div>
+  <div class="card">
+    <h2>Список записей</h2>
     <div id="list"></div>
-    <button id="createPost">Создать пост</button>
   </div>
   <div class="card">
     <h2>Каналы</h2>
+    <input id="channelId" placeholder="ID канала" />
+    <button id="addChannelBtn">Добавить канал</button>
     <div id="channels"></div>
+  </div>
+  <div class="card">
+    <h2>Рассылка</h2>
+    <select id="selectPost"></select>
+    <select id="selectChannel"></select>
+    <button id="sendBtn">Отправить</button>
   </div>
 </div>
 </body>
