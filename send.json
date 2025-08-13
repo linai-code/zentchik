@@ -1,6 +1,8 @@
 {
   "status": true,
-  "postId": "657dd4b6-b445-4a06-8ebb-5f9c69dcdc0c",
-  "channelId": "123",
-  "timestamp": "2025-08-13T21:37:35.912Z"
+  "postId": "01cad824-56b4-4639-a25b-9b05f077aca2",
+  "channels": [
+    "123"
+  ],
+  "timestamp": "2025-08-13T22:08:41.974Z"
 }
