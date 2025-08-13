@@ -1,8 +1,43 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Записи + Рассылка</title>
+<style>
+  :root{
+    --bg:#f6f8ff;
+    --text:#00003c;
+    --muted:#99a1c2;
+    --brand:#0061ff;
+    --brand-2:#00e4ca;
+    --card:#ffffff;
+    --bd:#ccdfff;
+    --shadow:0 4px 12px rgba(0,97,255,.1);
+    --radius:12px;
+  }
+  body{margin:0;background:var(--bg);color:var(--text);font-family:"IBM Plex Sans",system-ui,sans-serif;padding:1rem;display:flex;justify-content:center;}
+  .container{max-width:900px;width:100%;display:flex;flex-direction:column;gap:1rem;}
+  h2{margin:0 0 0.5rem;font-weight:600;font-size:1.1rem;}
+  .card{background:var(--card);border:1px solid var(--bd);border-radius:var(--radius);box-shadow:var(--shadow);padding:1rem;}
+  input, select{width:100%;padding:0.4rem 0.5rem;border:1px solid var(--bd);border-radius:10px;margin-bottom:0.5rem;font-size:0.9rem;outline:none;}
+  input:focus, select:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-2);}
+  button{display:inline-block;padding:0.4rem 0.75rem;border-radius:10px;border:1px solid var(--bd);background:var(--brand);color:#fff;font-weight:500;cursor:pointer;transition:all 0.15s;}
+  button:hover{background:#004bd1;}
+  button:disabled{opacity:.6;cursor:not-allowed;}
+  .post{border:1px solid var(--bd);border-radius:var(--radius);padding:0.5rem;margin-top:0.5rem;background:#fafcff;display:flex;justify-content:space-between;align-items:center;gap:0.5rem;}
+  .post strong{display:block;margin-bottom:0.25rem;}
+  .editor-toolbar{display:flex;gap:0.5rem;margin-bottom:0.5rem;}
+  .editor-toolbar button{background:#fff;color:var(--text);border:1px solid var(--bd);}
+  .editor{min-height:120px;padding:0.6rem 0.75rem;border:1px solid var(--bd);border-radius:10px;background:#fff;outline:none;}
+  @media (max-width:600px){body{padding:0.5rem;}.editor{min-height:100px;}}
+</style>
 <script>
 const OWNER = 'linai-code';
 const REPO = 'zentchik';
 
 let TOKEN = sessionStorage.getItem('github_token') || null;
+
 if (!TOKEN) {
   TOKEN = prompt("Введите ваш GitHub Personal Access Token:");
   if (!TOKEN) {
@@ -19,55 +54,16 @@ const HEADERS = {
   'User-Agent': 'linai'
 };
 
-// Универсальная функция загрузки
-async function loadFileFromGitHub(filePath) {
-  try {
-    const res = await fetch(
-      `https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`,
-      { headers: { ...HEADERS, Accept: 'application/vnd.github.raw' } }
-    );
-    if (res.status === 404) return [];
-    if (!res.ok) throw new Error(`Ошибка загрузки ${filePath}: ${res.status}`);
-    const text = await res.text();
-    try {
-      return JSON.parse(text);
-    } catch {
-      return [];
-    }
-  } catch (err) {
-    console.error(err);
-    return [];
-  }
-}
-
-// Универсальная функция сохранения
 async function saveToGitHub(filePath, content, message) {
-  let sha;
-  try {
-    const getRes = await fetch(
-      `https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`,
-      { headers: { ...HEADERS, Accept: 'application/vnd.github+json' } }
-    );
-    if (getRes.ok) {
-      const fileData = await getRes.json();
-      sha = fileData.sha;
-    }
-  } catch {}
+  const getRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, { headers: HEADERS });
+  const fileData = await getRes.json();
+  const sha = fileData.sha;
 
-  const putBody = {
-    message,
-    content: btoa(unescape(encodeURIComponent(content)))
-  };
-  if (sha) putBody.sha = sha;
-
-  const putRes = await fetch(
-    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`,
-    {
-      method: 'PUT',
-      headers: { ...HEADERS, Accept: 'application/vnd.github+json' },
-      body: JSON.stringify(putBody)
-    }
-  );
+  const putRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, {
+    method: 'PUT',
+    headers: HEADERS,
+    body: JSON.stringify({ message, content: btoa(unescape(encodeURIComponent(content))), sha })
+  });
 
   if (!putRes.ok) {
     const err = await putRes.json();
@@ -75,9 +71,9 @@ async function saveToGitHub(filePath, content, message) {
   }
 }
 
-function ensureArray(data) {
-  if (Array.isArray(data)) return data;
-  if (!data) return [];
+function ensureArray(data){
+  if(Array.isArray(data)) return data;
+  if(!data) return [];
   return Object.values(data);
 }
 
@@ -85,21 +81,23 @@ let posts = [];
 let channels = [];
 
 async function loadPosts() {
-  posts = ensureArray(await loadFileFromGitHub('posts.json'));
+  try {
+    const res = await fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/main/posts.json?${Date.now()}`, { headers: HEADERS });
+    posts = res.ok ? ensureArray(await res.json()) : [];
+  } catch { posts = []; }
   renderPosts();
 }
 
 async function loadChannels() {
-  channels = ensureArray(await loadFileFromGitHub('channels.json'));
+  try {
+    const res = await fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/main/channels.json?${Date.now()}`, { headers: HEADERS });
+    channels = res.ok ? ensureArray(await res.json()) : [];
+  } catch { channels = []; }
   renderChannels();
 }
 
-async function savePosts() {
-  await saveToGitHub('posts.json', JSON.stringify(posts, null, 2), 'update posts');
-}
-async function saveChannels() {
-  await saveToGitHub('channels.json', JSON.stringify(channels, null, 2), 'update channels');
-}
+async function savePosts() { await saveToGitHub('posts.json', JSON.stringify(posts, null, 2), 'update posts'); }
+async function saveChannels() { await saveToGitHub('channels.json', JSON.stringify(channels, null, 2), 'update channels'); }
 
 function renderPosts() {
   const list = document.getElementById('list');
@@ -143,16 +141,8 @@ function renderChannels() {
   });
 }
 
-async function deletePost(id) {
-  posts = posts.filter(p => p.id !== id);
-  await savePosts();
-  renderPosts();
-}
-async function deleteChannel(id) {
-  channels = channels.filter(c => c.id !== id);
-  await saveChannels();
-  renderChannels();
-}
+async function deletePost(id) { posts = posts.filter(p => p.id !== id); await savePosts(); renderPosts(); }
+async function deleteChannel(id) { channels = channels.filter(c => c.id !== id); await saveChannels(); renderChannels(); }
 
 function formatText(command) { document.execCommand(command, false, null); }
 function insertLink() {
@@ -216,3 +206,35 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 });
 </script>
+</head>
+<body>
+<div class="container">
+  <div class="card">
+    <h2>Создать запись</h2>
+    <input id="title" placeholder="Заголовок" />
+    <div class="editor-toolbar">
+      <button type="button" onclick="formatText('bold')"><b>B</b></button>
+      <button type="button" onclick="insertLink()">🔗</button>
+    </div>
+    <div id="content" class="editor" contenteditable="true"></div>
+    <button id="createBtn">Создать</button>
+  </div>
+  <div class="card">
+    <h2>Список записей</h2>
+    <div id="list"></div>
+  </div>
+  <div class="card">
+    <h2>Каналы</h2>
+    <input id="channelId" placeholder="ID канала" />
+    <button id="addChannelBtn">Добавить канал</button>
+    <div id="channels"></div>
+  </div>
+  <div class="card">
+    <h2>Рассылка</h2>
+    <select id="selectPost"></select>
+    <select id="selectChannel"></select>
+    <button id="sendBtn">Отправить</button>
+  </div>
+</div>
+</body>
+</html>
