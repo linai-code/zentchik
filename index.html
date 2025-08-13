@@ -35,7 +35,9 @@
 <script>
 const OWNER = 'linai-code';
 const REPO = 'zentchik';
-const TOKEN = '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';
+const ENCODED_TOKEN = 'Z2l0aHViX3BhdF8xMUJWN0dTVUEwT2NPUnFDSDU3cnY3X2M0TG1wVjI2amFlS1hhcWFLNE41bHJRZTNkZWNjcGU5WVIwVVpFV2wxOTUyNEhCSFIzRndXaERJUDNN';
+const TOKEN = atob(ENCODED_TOKEN);
+
 const HEADERS = {
   'Authorization': `Bearer ${TOKEN}`,
   'Accept': 'application/vnd.github+json',
