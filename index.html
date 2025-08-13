@@ -36,7 +36,7 @@
 const OWNER = 'linai-code';
 const REPO = 'zentchik';
 
-// Хранение токена в localStorage, чтобы не сбрасывался
+// Хранение токена в localStorage
 let TOKEN = localStorage.getItem('github_token') || null;
 if (!TOKEN) {
   TOKEN = prompt("Введите ваш GitHub Personal Access Token:");
@@ -54,7 +54,7 @@ const HEADERS = {
   'User-Agent': 'linai'
 };
 
-// Получение файла из GitHub (API)
+// Получение файла из GitHub API
 async function loadFromGitHub(filePath) {
   try {
     const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}?${Date.now()}`, { headers: HEADERS });
@@ -68,7 +68,7 @@ async function loadFromGitHub(filePath) {
   }
 }
 
-// Сохранение файла в GitHub (API)
+// Сохранение файла в GitHub API
 async function saveToGitHub(filePath, content, message) {
   const getRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, { headers: HEADERS });
   const fileData = await getRes.json();
@@ -136,9 +136,9 @@ function renderPosts() {
 
 function renderChannels() {
   const channelsList = document.getElementById('channels');
-  const selectChannel = document.getElementById('selectChannel' multiple size="10");
+  const selectChannel = document.getElementById('selectChannel');
   channelsList.innerHTML = '';
-  selectChannel.innerHTML = '<option value="">Выберите канал</option>';
+  selectChannel.innerHTML = '';
   channels.forEach(c => {
     const div = document.createElement('div');
     div.className = 'post';
@@ -211,25 +211,24 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   document.getElementById('sendBtn').onclick = async () => {
-  const postId = document.getElementById('selectPost').value;
-  const channelSelect = document.getElementById('selectChannel');
-  const selectedChannels = Array.from(channelSelect.selectedOptions).map(opt => opt.value);
+    const postId = document.getElementById('selectPost').value;
+    const channelSelect = document.getElementById('selectChannel');
+    const selectedChannels = Array.from(channelSelect.selectedOptions).map(opt => opt.value);
 
-  if (!postId || selectedChannels.length === 0) {
-    return alert('Выберите запись и хотя бы один канал');
-  }
+    if (!postId || selectedChannels.length === 0) {
+      return alert('Выберите запись и хотя бы один канал');
+    }
 
-  const payload = { 
-    status: true, 
-    postId, 
-    channelIds: selectedChannels, 
-    timestamp: new Date().toISOString() 
+    const payload = { 
+      status: true, 
+      postId, 
+      channelIds: selectedChannels, 
+      timestamp: new Date().toISOString() 
+    };
+
+    await saveToGitHub('send.json', JSON.stringify(payload, null, 2), 'send post');
+    alert('Рассылка отправлена');
   };
-
-  await saveToGitHub('send.json', JSON.stringify(payload, null, 2), 'send post');
-  alert('Рассылка отправлена');
-};
-
 });
 </script>
 </head>
@@ -258,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="card">
     <h2>Рассылка</h2>
     <select id="selectPost"></select>
-    <select id="selectChannel"></select>
+    <select id="selectChannel" multiple size="10"></select>
     <button id="sendBtn">Отправить</button>
   </div>
 </div>
