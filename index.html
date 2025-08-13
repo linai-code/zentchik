@@ -30,34 +30,27 @@
   .editor-toolbar{display:flex;gap:0.5rem;margin-bottom:0.5rem;}
   .editor-toolbar button{background:#fff;color:var(--text);border:1px solid var(--bd);}
   .editor{min-height:120px;padding:0.6rem 0.75rem;border:1px solid var(--bd);border-radius:10px;background:#fff;outline:none;}
-  @media (max-width:600px){
-    body{padding:0.5rem;}
-    .editor{min-height:100px;}
-  }
+  @media (max-width:600px){body{padding:0.5rem;}.editor{min-height:100px;}}
 </style>
 <script>
 const OWNER = 'linai-code';
 const REPO = 'zentchik';
 const TOKEN = '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';
+const HEADERS = {
+  'Authorization': `token ${TOKEN}`,
+  'Accept': 'application/vnd.github.v3+json',
+  'User-Agent': 'Custom-App'
+};
 
 async function saveToGitHub(filePath, content, message) {
-  const getRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, {
-    headers: { Authorization: `token ${TOKEN}` }
-  });
+  const getRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, { headers: HEADERS });
   const fileData = await getRes.json();
   const sha = fileData.sha;
 
   const putRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, {
     method: 'PUT',
-    headers: {
-      Authorization: `token ${TOKEN}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      message,
-      content: btoa(unescape(encodeURIComponent(content))),
-      sha
-    })
+    headers: HEADERS,
+    body: JSON.stringify({ message, content: btoa(unescape(encodeURIComponent(content))), sha })
   });
 
   if (!putRes.ok) {
@@ -77,7 +70,7 @@ let channels = [];
 
 async function loadPosts() {
   try {
-    const res = await fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/main/posts.json?cacheBust=${Date.now()}`);
+    const res = await fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/main/posts.json?${Date.now()}`);
     posts = res.ok ? ensureArray(await res.json()) : [];
   } catch { posts = []; }
   renderPosts();
@@ -85,19 +78,14 @@ async function loadPosts() {
 
 async function loadChannels() {
   try {
-    const res = await fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/main/channels.json?cacheBust=${Date.now()}`);
+    const res = await fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/main/channels.json?${Date.now()}`);
     channels = res.ok ? ensureArray(await res.json()) : [];
   } catch { channels = []; }
   renderChannels();
 }
 
-async function savePosts() {
-  await saveToGitHub('posts.json', JSON.stringify(posts, null, 2), 'update posts');
-}
-
-async function saveChannels() {
-  await saveToGitHub('channels.json', JSON.stringify(channels, null, 2), 'update channels');
-}
+async function savePosts() { await saveToGitHub('posts.json', JSON.stringify(posts, null, 2), 'update posts'); }
+async function saveChannels() { await saveToGitHub('channels.json', JSON.stringify(channels, null, 2), 'update channels'); }
 
 function renderPosts() {
   const list = document.getElementById('list');
@@ -141,22 +129,10 @@ function renderChannels() {
   });
 }
 
-async function deletePost(id) {
-  posts = posts.filter(p => p.id !== id);
-  await savePosts();
-  renderPosts();
-}
+async function deletePost(id) { posts = posts.filter(p => p.id !== id); await savePosts(); renderPosts(); }
+async function deleteChannel(id) { channels = channels.filter(c => c.id !== id); await saveChannels(); renderChannels(); }
 
-async function deleteChannel(id) {
-  channels = channels.filter(c => c.id !== id);
-  await saveChannels();
-  renderChannels();
-}
-
-function formatText(command) {
-  document.execCommand(command, false, null);
-}
-
+function formatText(command) { document.execCommand(command, false, null); }
 function insertLink() {
   const url = prompt('Введите URL');
   if (url) {
