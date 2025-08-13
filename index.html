@@ -36,23 +36,29 @@
 const OWNER = 'linai-code';
 const REPO = 'zentchik';
 
-let TOKEN = sessionStorage.getItem('github_token') || null;
-
+let TOKEN = sessionStorage.getItem('gh_token');
 if (!TOKEN) {
-  TOKEN = prompt("Введите ваш GitHub Personal Access Token:");
-  if (!TOKEN) {
-    alert("Токен обязателен для работы приложения.");
-    throw new Error("Нет токена");
-  }
-  sessionStorage.setItem('github_token', TOKEN);
+  TOKEN = prompt('Введите ваш GitHub Personal Access Token:');
+  sessionStorage.setItem('gh_token', TOKEN);
 }
 
 const HEADERS = {
   'Authorization': `Bearer ${TOKEN}`,
-  'Accept': 'application/vnd.github+json',
+  'Accept': 'application/vnd.github.raw+json',
   'X-GitHub-Api-Version': '2022-11-28',
   'User-Agent': 'linai'
 };
+
+async function loadFileFromGitHub(filePath) {
+  try {
+    const res = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, { headers: HEADERS });
+    if (!res.ok) throw new Error(`Ошибка загрузки ${filePath}: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error(err);
+    return [];
+  }
+}
 
 async function saveToGitHub(filePath, content, message) {
   const getRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, { headers: HEADERS });
@@ -61,7 +67,10 @@ async function saveToGitHub(filePath, content, message) {
 
   const putRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, {
     method: 'PUT',
-    headers: HEADERS,
+    headers: {
+      ...HEADERS,
+      'Accept': 'application/vnd.github+json'
+    },
     body: JSON.stringify({ message, content: btoa(unescape(encodeURIComponent(content))), sha })
   });
 
@@ -71,28 +80,20 @@ async function saveToGitHub(filePath, content, message) {
   }
 }
 
-function ensureArray(data){
-  if(Array.isArray(data)) return data;
-  if(!data) return [];
-  return Object.values(data);
+function ensureArray(data) {
+  return Array.isArray(data) ? data : (data ? Object.values(data) : []);
 }
 
 let posts = [];
 let channels = [];
 
 async function loadPosts() {
-  try {
-    const res = await fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/main/posts.json?${Date.now()}`, { headers: HEADERS });
-    posts = res.ok ? ensureArray(await res.json()) : [];
-  } catch { posts = []; }
+  posts = ensureArray(await loadFileFromGitHub("posts.json"));
   renderPosts();
 }
 
 async function loadChannels() {
-  try {
-    const res = await fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/main/channels.json?${Date.now()}`, { headers: HEADERS });
-    channels = res.ok ? ensureArray(await res.json()) : [];
-  } catch { channels = []; }
+  channels = ensureArray(await loadFileFromGitHub("channels.json"));
   renderChannels();
 }
 
@@ -124,7 +125,7 @@ function renderChannels() {
   const channelsList = document.getElementById('channels');
   const selectChannel = document.getElementById('selectChannel');
   channelsList.innerHTML = '';
-  selectChannel.innerHTML = '<option value="">Выберите канал</option>';
+  selectChannel.innerHTML = '';
   channels.forEach(c => {
     const div = document.createElement('div');
     div.className = 'post';
@@ -198,9 +199,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('sendBtn').onclick = async () => {
     const postId = document.getElementById('selectPost').value;
-    const channelId = document.getElementById('selectChannel').value;
-    if (!postId || !channelId) return alert('Выберите запись и канал');
-    const payload = { status: true, postId, channelId, timestamp: new Date().toISOString() };
+    const selectedOptions = Array.from(document.getElementById('selectChannel').selectedOptions).map(o => o.value);
+    if (!postId || selectedOptions.length === 0) return alert('Выберите запись и хотя бы один канал');
+    const payload = { status: true, postId, channels: selectedOptions, timestamp: new Date().toISOString() };
     await saveToGitHub('send.json', JSON.stringify(payload, null, 2), 'send post');
     alert('Рассылка отправлена');
   };
@@ -232,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
   <div class="card">
     <h2>Рассылка</h2>
     <select id="selectPost"></select>
-    <select id="selectChannel"></select>
+    <select id="selectChannel" multiple size="5"></select>
     <button id="sendBtn">Отправить</button>
   </div>
 </div>
