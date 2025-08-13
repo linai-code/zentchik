@@ -136,7 +136,7 @@ function renderPosts() {
 
 function renderChannels() {
   const channelsList = document.getElementById('channels');
-  const selectChannel = document.getElementById('selectChannel');
+  const selectChannel = document.getElementById('selectChannel' multiple size="10");
   channelsList.innerHTML = '';
   selectChannel.innerHTML = '<option value="">Выберите канал</option>';
   channels.forEach(c => {
