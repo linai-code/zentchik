@@ -60,19 +60,45 @@ async function loadFileFromGitHub(filePath) {
   }
 }
 
+// Обновлённая функция
 async function saveToGitHub(filePath, content, message) {
-  const getRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, { headers: HEADERS });
-  const fileData = await getRes.json();
-  const sha = fileData.sha;
+  let sha = undefined;
 
-  const putRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, {
-    method: 'PUT',
-    headers: {
-      ...HEADERS,
-      'Accept': 'application/vnd.github+json'
-    },
-    body: JSON.stringify({ message, content: btoa(unescape(encodeURIComponent(content))), sha })
-  });
+  // Отдельный запрос для получения sha в JSON-формате
+  try {
+    const res = await fetch(
+      `https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`,
+      {
+        headers: {
+          ...HEADERS,
+          Accept: 'application/vnd.github+json' // важно: json, а не raw
+        }
+      }
+    );
+
+    if (res.ok) {
+      const fileData = await res.json();
+      sha = fileData.sha;
+    }
+  } catch (err) {
+    console.warn(`Не удалось получить sha для ${filePath}:`, err);
+  }
+
+  const putRes = await fetch(
+    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`,
+    {
+      method: 'PUT',
+      headers: {
+        ...HEADERS,
+        Accept: 'application/vnd.github+json'
+      },
+      body: JSON.stringify({
+        message,
+        content: btoa(unescape(encodeURIComponent(content))),
+        ...(sha ? { sha } : {}) // sha только если файл существует
+      })
+    }
+  );
 
   if (!putRes.ok) {
     const err = await putRes.json();
