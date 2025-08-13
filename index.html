@@ -35,8 +35,17 @@
 <script>
 const OWNER = 'linai-code';
 const REPO = 'zentchik';
-const ENCODED_TOKEN = 'Z2l0aHViX3BhdF8xMUJWN0dTVUEwaEFMWmd3Y05PR3E5X3NkZkFKZHNpclA1bDlqMEhNbmlDUDc1YW00WmFTRHlSalQxcmNkQ1pSRlBaVlBaSVpaUW95WDkzd2Nj';
-const TOKEN = atob(ENCODED_TOKEN);
+
+let TOKEN = sessionStorage.getItem('github_token') || null;
+
+if (!TOKEN) {
+  TOKEN = prompt("Введите ваш GitHub Personal Access Token:");
+  if (!TOKEN) {
+    alert("Токен обязателен для работы приложения.");
+    throw new Error("Нет токена");
+  }
+  sessionStorage.setItem('github_token', TOKEN);
+}
 
 const HEADERS = {
   'Authorization': `Bearer ${TOKEN}`,
