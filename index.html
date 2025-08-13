@@ -211,13 +211,25 @@ document.addEventListener('DOMContentLoaded', () => {
   };
 
   document.getElementById('sendBtn').onclick = async () => {
-    const postId = document.getElementById('selectPost').value;
-    const channelId = document.getElementById('selectChannel').value;
-    if (!postId || !channelId) return alert('Выберите запись и канал');
-    const payload = { status: true, postId, channelId, timestamp: new Date().toISOString() };
-    await saveToGitHub('send.json', JSON.stringify(payload, null, 2), 'send post');
-    alert('Рассылка отправлена');
+  const postId = document.getElementById('selectPost').value;
+  const channelSelect = document.getElementById('selectChannel');
+  const selectedChannels = Array.from(channelSelect.selectedOptions).map(opt => opt.value);
+
+  if (!postId || selectedChannels.length === 0) {
+    return alert('Выберите запись и хотя бы один канал');
+  }
+
+  const payload = { 
+    status: true, 
+    postId, 
+    channelIds: selectedChannels, 
+    timestamp: new Date().toISOString() 
   };
+
+  await saveToGitHub('send.json', JSON.stringify(payload, null, 2), 'send post');
+  alert('Рассылка отправлена');
+};
+
 });
 </script>
 </head>
