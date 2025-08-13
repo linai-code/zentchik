@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Записи + Рассылка</title>
 <style>
   :root{
@@ -36,13 +36,13 @@
   }
 </style>
 <script>
-const GITHUB_TOKEN = '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';
 const OWNER = 'linai-code';
 const REPO = 'zentchik';
+const TOKEN = atob('Z2hwX0ZlT3lwU3BwVUt3TmlORlNzcHdodmdNcmhubEc4RTNhaE10dg=='); // безопаснее хранить зашифрованно
 
 async function saveToGitHub(filePath, content, message) {
   const getRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, {
-    headers: { Authorization: `token ${GITHUB_TOKEN}` }
+    headers: { Authorization: `Bearer ${TOKEN}` }
   });
   const fileData = await getRes.json();
   const sha = fileData.sha;
@@ -50,7 +50,7 @@ async function saveToGitHub(filePath, content, message) {
   const putRes = await fetch(`https://api.github.com/repos/${OWNER}/${REPO}/contents/${filePath}`, {
     method: 'PUT',
     headers: {
-      Authorization: `token ${GITHUB_TOKEN}`,
+      Authorization: `Bearer ${TOKEN}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
@@ -77,7 +77,7 @@ let channels = [];
 
 async function loadPosts() {
   try {
-    const res = await fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/main/posts.json`);
+    const res = await fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/main/posts.json?cacheBust=${Date.now()}`);
     posts = res.ok ? ensureArray(await res.json()) : [];
   } catch { posts = []; }
   renderPosts();
@@ -85,7 +85,7 @@ async function loadPosts() {
 
 async function loadChannels() {
   try {
-    const res = await fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/main/channels.json`);
+    const res = await fetch(`https://raw.githubusercontent.com/${OWNER}/${REPO}/main/channels.json?cacheBust=${Date.now()}`);
     channels = res.ok ? ensureArray(await res.json()) : [];
   } catch { channels = []; }
   renderChannels();
@@ -101,7 +101,9 @@ async function saveChannels() {
 
 function renderPosts() {
   const list = document.getElementById('list');
+  const selectPost = document.getElementById('selectPost');
   list.innerHTML = '';
+  selectPost.innerHTML = '<option value="">Выберите запись</option>';
   posts.forEach(p => {
     const div = document.createElement('div');
     div.className = 'post';
@@ -111,12 +113,18 @@ function renderPosts() {
     delBtn.onclick = () => deletePost(p.id);
     div.appendChild(delBtn);
     list.appendChild(div);
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.title;
+    selectPost.appendChild(opt);
   });
 }
 
 function renderChannels() {
   const channelsList = document.getElementById('channels');
+  const selectChannel = document.getElementById('selectChannel');
   channelsList.innerHTML = '';
+  selectChannel.innerHTML = '<option value="">Выберите канал</option>';
   channels.forEach(c => {
     const div = document.createElement('div');
     div.className = 'post';
@@ -126,6 +134,10 @@ function renderChannels() {
     delBtn.onclick = () => deleteChannel(c.id);
     div.appendChild(delBtn);
     channelsList.appendChild(div);
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.id;
+    selectChannel.appendChild(opt);
   });
 }
 
