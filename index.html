@@ -120,7 +120,7 @@ function renderPosts() {
     div.innerHTML = `<div>
         <strong>${p.title}</strong>
         <small style="color:var(--muted)">${date}</small>
-        <div>${p.content.substring(0, 12)+"..."}</div>
+        <div>${p.content.substring(0, 20)+"..."}</div>
       </div>`;
     const delBtn = document.createElement('button');
     delBtn.textContent = '🗑';
