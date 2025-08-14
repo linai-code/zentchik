@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Записи + Рассылка</title>
+<title>Рассылка</title>
 <style>
   :root{
     --bg:#f6f8ff;
@@ -120,7 +120,7 @@ function renderPosts() {
     div.innerHTML = `<div>
         <strong>${p.title}</strong>
         <small style="color:var(--muted)">${date}</small>
-        <div>${p.content}</div>
+        <div>${p.content.substring(0, 12)+"..."}</div>
       </div>`;
     const delBtn = document.createElement('button');
     delBtn.textContent = '🗑';
