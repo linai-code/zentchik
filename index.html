@@ -229,6 +229,24 @@ document.addEventListener('DOMContentLoaded', () => {
     await saveToGitHub('send.json', JSON.stringify(payload, null, 2), 'send post');
     alert('Рассылка отправлена');
   };
+
+  document.getElementById('resendBtn').onclick = async () => {
+    const history = await loadFromGitHub('history.json');
+    if (!history.length) {
+      return alert('В истории нет записей для повторной отправки');
+    }
+
+    const last = history[0]; // Последняя запись
+    const payload = {
+      status: true,
+      postId: last.postId,
+      channelIds: last.channelIds,
+      timestamp: new Date().toISOString()
+    };
+
+    await saveToGitHub('send.json', JSON.stringify(payload, null, 2), 'resend last post');
+    alert('Повторная отправка выполнена');
+  };
 });
 </script>
 </head>
@@ -258,7 +276,10 @@ document.addEventListener('DOMContentLoaded', () => {
     <h2>Рассылка</h2>
     <select id="selectPost"></select>
     <select id="selectChannel" multiple size="10"></select>
-    <button id="sendBtn">Отправить</button>
+    <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+      <button id="sendBtn">Отправить</button>
+      <button id="resendBtn" style="background:#ff6600;">Повторная отправка</button>
+    </div>
   </div>
 </div>
 </body>
