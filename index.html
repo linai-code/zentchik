@@ -189,16 +189,17 @@ document.addEventListener('DOMContentLoaded', () => {
   loadChannels();
 
   document.getElementById('createBtn').onclick = async () => {
-    const title = document.getElementById('title').value.trim();
-    const content = document.getElementById('content').innerHTML.trim();
-    if (!title || !content) return alert('Введите заголовок и текст');
-    const id = crypto.randomUUID();
-    posts.unshift({ id, title, content, createdAt: Date.now() });
-    await savePosts();
-    renderPosts();
-    document.getElementById('title').value = '';
-    document.getElementById('content').innerHTML = '';
-  };
+  const title = document.getElementById('title').value.trim();
+  const content = document.getElementById('content').textContent.trim();
+  if (!title || !content) return alert('Введите заголовок и текст');
+  const id = crypto.randomUUID();
+  posts.unshift({ id, title, content, createdAt: Date.now() });
+  await savePosts();
+  renderPosts();
+  document.getElementById('title').value = '';
+  document.getElementById('content').innerHTML = '';
+};
+
 
   document.getElementById('addChannelBtn').onclick = async () => {
     const id = document.getElementById('channelId').value.trim();
