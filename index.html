@@ -190,7 +190,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   document.getElementById('createBtn').onclick = async () => {
   const title = document.getElementById('title').value.trim();
-  const content = document.getElementById('content').textContent.trim();
+  const contentEl = document.getElementById('content');
+  const content = Array.from(contentEl.childNodes)
+  .map(node => node.nodeType === Node.TEXT_NODE ? node.textContent : node.innerText)
+  .join('\n')
+  .trim();
   if (!title || !content) return alert('Введите заголовок и текст');
   const id = crypto.randomUUID();
   posts.unshift({ id, title, content, createdAt: Date.now() });
