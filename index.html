@@ -192,21 +192,21 @@ document.addEventListener('DOMContentLoaded', () => {
   const title = document.getElementById('title').value.trim();
   const contentEl = document.getElementById('content');
   let content = contentEl.innerHTML;
-  content = content
-    .replace(/<div><br><\/div>/gi, '\n') 
-    .replace(/<div>/gi, '\n')    
-    .replace(/<\/div>/gi, '')
-    .replace(/<br\s*\/?>/gi, '\n');     
-  content = content
-  .replace(/\r\n|\r/g, '\n')
-  .replace(/\n{3,}/g, '\n\n')
-  .trim();
+  content = content.replace(/<div><br><\/div>/gi, '\n');
+  content = content.replace(/<div>/gi, '\n');
+  content = content.replace(/<\/div>/gi, '');
+  content = content.replace(/<br\s*\/?>/gi, '\n');
+  content = content.replace(/\r\n|\r/g, '\n');
+  content = content.replace(/\n{3,}/g, '\n\n');
+  content = content.trim();
 
   if (!title || !content) return alert('Введите заголовок и текст');
+
   const id = crypto.randomUUID();
   posts.unshift({ id, title, content, createdAt: Date.now() });
   await savePosts();
   renderPosts();
+
   document.getElementById('title').value = '';
   document.getElementById('content').innerHTML = '';
 };
