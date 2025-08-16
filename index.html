@@ -193,9 +193,14 @@ document.addEventListener('DOMContentLoaded', () => {
   const contentEl = document.getElementById('content');
   let content = contentEl.innerHTML;
   content = content
-    .replace(/\s*\n\s*/g, '')     
-    .replace(/\s{2,}/g, ' ')    
-    .trim();                     
+    .replace(/<div><br><\/div>/gi, '\n')  // пустой div с br -> новый перенос
+    .replace(/<div>/gi, '\n')              // открывающий div -> перенос
+    .replace(/<\/div>/gi, '')               // закрывающий div -> удаляем
+    .replace(/<br\s*\/?>/gi, '\n');        // br -> перенос строки
+  content = content
+    .replace(/\s{2,}/g, ' ')               // несколько пробелов -> один
+    .replace(/\n{2,}/g, '\n')              // несколько переносов -> один
+    .trim();
   if (!title || !content) return alert('Введите заголовок и текст');
   const id = crypto.randomUUID();
   posts.unshift({ id, title, content, createdAt: Date.now() });
