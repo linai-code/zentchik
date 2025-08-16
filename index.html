@@ -191,14 +191,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('createBtn').onclick = async () => {
   const title = document.getElementById('title').value.trim();
   const contentEl = document.getElementById('content');
-  const content = contentEl.innerText
-  .split('\n')      
-  .map(line => line.trim())
-  .filter(line => line)
-  .join('\n');         
-
-console.log(content);
-
+  let content = contentEl.innerHTML;
+  content = content
+    .replace(/\s*\n\s*/g, '')     
+    .replace(/\s{2,}/g, ' ')    
+    .trim();                     
   if (!title || !content) return alert('Введите заголовок и текст');
   const id = crypto.randomUUID();
   posts.unshift({ id, title, content, createdAt: Date.now() });
